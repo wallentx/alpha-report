@@ -46,14 +46,8 @@ function getInfo() {
   CPUMODEL=$(lscpu | grep '^Model name:' | awk -F: '{print $2}' | xargs)
   CPUCORES=$(lscpu | awk '/Core\(s\) per socket/ {print $4}')
   CPUTHREADS=$(lscpu | awk '/^CPU\(s\)/ {print $2}')
-
   GPUINFO=$(nvidia-smi --query-gpu=name,driver_version,pcie.link.gen.current,pcie.link.width.current --format=csv,noheader)
   IFS=',' read -r GPUNAME GPUDRIVER GPUPCIEGEN GPUPCIEWIDTH <<< "$GPUINFO"
-#  GPUNAME=$(nvidia-smi --query-gpu=name --format=csv,noheader)
-#  GPUDRIVER=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader)
-#  GPUPCIEGEN=$(nvidia-smi --query-gpu=pcie.link.gen.current --format=csv,noheader)
-#  GPUPCIEWIDTH=$(nvidia-smi --query-gpu=pcie.link.width.current --format=csv,noheader)
-
   MEMINFO=$(dmidecode -t memory)
   MEMTOTAL=$(grep 'MemTotal' /proc/meminfo | awk '{print $2/1024/1024 "GB"}')
   MEMDIMMS=$(echo "$MEMINFO" | grep -i size | grep -v 'No' | awk '{ print $2$3}' | sort -rn | uniq -c | awk '{ printf("%dx%s", $1, $2) }')
@@ -76,12 +70,6 @@ function getInfo() {
   printf 'DriverVersion="%s"\n' "${GPUDRIVER#" "}"
   # PCIe link
   printf 'PCIeLink="PCIe %sx%s"\n' "${GPUPCIEGEN#" "}" "${GPUPCIEWIDTH#" "}"
-  ## GPU
-  ##echo -e "GPU=\"$GPUNAME\""
-  ## NVIDIA Driver
-  ##echo -e "DriverVersion=\"$GPUDRIVER\""
-  ## PCIe link
-  ##echo -e 'PCIeLink="PCIe '$GPUPCIEGEN"x"$GPUPCIEWIDTH"\""
   # DRAM (Size, Type, MHz, etc)
   echo -e "DRAM=\"$MEMTOTAL, $MEMDIMMS $MEMTYPE, $MEMSPEED\""
 }
