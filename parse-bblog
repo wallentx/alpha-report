@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+
+grep ' Compression Level     :' | cut -d' ' -f9
+grep 'Completed Phase 1 in ' | cut -d' ' -f5
+grep 'Completed Plot' | cut -d' ' -f5
