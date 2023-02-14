@@ -35,5 +35,5 @@ IFS=',' read -r GPU_G_C GPU_W_C GPU_G_CAP GPU_W_CAP GPU_G_M HOST_G_M <<< "$GPUIN
 
 echo "You are currently running at "$GPU_G_C"x"$GPU_W_C"."
 echo "You are capable of running at "$GPU_G_CAP"x"$GPU_W_CAP"."
-echo "Your card is able run at a max PCIe Gen of "$GPU_G_M"."
-echo "Your host can operate at a max of PCIe Gen "$HOST_G_M"."
+echo "Your GPU is able run at a max of PCIe Gen "$GPU_G_M"."
+echo "Your machine can operate at a max of PCIe Gen "$HOST_G_M"."

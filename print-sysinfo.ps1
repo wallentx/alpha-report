@@ -43,6 +43,11 @@ $nvData = $nvInfo -split ","
 $nvGen = $nvData[0] -replace '\s'
 $nvWidth = $nvData[1] -replace '\s'
 $nvDriver = $nvData[2] -replace '\s'
+$gpuqInfo = (nvidia-smi.exe -q | Select-String 'Board Part Number|Product Architecture' | ForEach-Object { $_.Line.Split()[-1] })
+$gpuqData = $gpuqInfo -split ","
+$gpuSKU = $gpuqData[0] -replace '\s'
+$gpuArch = $gpuqData[1] -replace '\s'
+
 
 # System Name
 Write-Output "SystemName=`"$($cs.Name)`""
@@ -56,8 +61,14 @@ Write-Output "SystemVendor/Model=`"$($cs.Manufacturer)/$($cs.Model)`""
 # CPU
 Write-Output "CPU=`"$($proc.Name) (C:$($proc.NumberOfCores)|T:$($proc.NumberOfLogicalProcessors))`""
 
-# GPU
+# GPU Name
 Write-Output "GPU=`"$($vc.Name)`""
+
+# GPU SKU
+Write-Output "GPUSKU=`"$gpuSKU`""
+
+# GPU Architecture
+Write-Output "GPUArch=`"$gpuArch`""
 
 # NVIDIA Driver
 Write-Output "DriverVersion=`"$nvDriver`""
