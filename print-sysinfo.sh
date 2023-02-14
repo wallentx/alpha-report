@@ -2,7 +2,7 @@
 set -e
 
 if [ "$EUID" -ne 0 ]; then
-  echo "Please run as root"
+  echo "Please run as sudo, or root."
   exit
 fi
 
@@ -48,6 +48,8 @@ function getInfo() {
   CPUTHREADS=$(lscpu | awk '/^CPU\(s\)/ {print $2}')
   GPUINFO=$(nvidia-smi --query-gpu=name,driver_version,pcie.link.gen.current,pcie.link.width.current --format=csv,noheader)
   IFS=',' read -r GPUNAME GPUDRIVER GPUPCIEGEN GPUPCIEWIDTH <<< "$GPUINFO"
+  GPUQINFO=( $(nvidia-smi -q | grep 'Board Part Number\|Product Architecture' | awk '{print $NF}') )
+  IFS=' ' read -r GPUBOARD GPUARCH <<< "${GPUQINFO[*]}"
   MEMINFO=$(dmidecode -t memory)
   MEMTOTAL=$(grep 'MemTotal' /proc/meminfo | awk '{print $2/1024/1024 "GB"}')
   MEMDIMMS=$(echo "$MEMINFO" | grep -i size | grep -v 'No' | awk '{ print $2$3}' | sort -rn | uniq -c | awk '{ printf("%dx%s", $1, $2) }')
@@ -64,8 +66,12 @@ function getInfo() {
   echo -e "SystemVendor/Model=\"${VENDOR[*]}\""
   # CPU
   echo -e "CPU=\"$CPUCOUNT $CPUMODEL (C:$CPUCORES|T:$CPUTHREADS)\""
-  # GPU
+  # GPU Name
   printf 'GPU="%s"\n' "$GPUNAME"
+  # GPU SKU
+  printf 'GPUSKU="%s"\n' "$GPUBOARD"
+  # GPU Arch
+  printf 'GPUArch="%s"\n' "$GPUARCH"
   # NVIDIA Driver
   printf 'DriverVersion="%s"\n' "${GPUDRIVER#" "}"
   # PCIe link
