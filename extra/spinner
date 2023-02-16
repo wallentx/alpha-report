@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -e
+
+TMPOUT=$(mktemp /tmp/tmpXXXXXXXXXX)
+
+function shutdown() {
+  tput cnorm
+  rm $TMPOUT
+}
+trap shutdown EXIT
+
+function _cursorBack() {
+  echo -en "\033[$1D"
+}
+
+function _spinner() {
+  local LC_CTYPE=C
+  local LC_ALL=en_US.utf-8
+  tput civis
+  local CL="\e[2K"
+  local spin="⣷⣯⣟⡿⢿⣻⣽⣾"
+  local pid=$(jobs -p)
+  local charwidth=1
+  local i=0
+  while kill -0 $pid 2>/dev/null; do
+    local i=$(((i + charwidth) % ${#spin}))
+    printf "%s" "$(tput setaf 2)${spin:i:charwidth}$(tput sgr0)"
+    _cursorBack 1
+    sleep .1
+  done
+  printf "${CL}"
+  tput cnorm
+  wait $(jobs -p)
+}
+
+("$@") &
+
+_spinner $!

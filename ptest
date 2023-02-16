@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+# Store the initial value of persistence mode
+INITIAL_PM=$(nvidia-smi -q | grep 'Persistence Mode' | awk '{print $NF}')
+
+echo "$INITIAL_PM"
+
+if [ "$INITIAL_PM" == "Disabled" ]; then
+# Enable persistence mode
+sudo nvidia-smi -pm 1
+fi
+
+# Do some work with the GPU here...
+IFS=',' W_ARRAY=( $(nvidia-smi --query-gpu=power.max_limit,power.default_limit,persistence_mode,pstate --format=csv,noheader | sed 's/, /,/g; s/ W//g') )
+W_MAX=$(echo ${W_ARRAY[0]} | awk '{printf "%.0f\n", $1}')
+W_DEF=$(echo ${W_ARRAY[1]} | awk '{printf "%.0f\n", $1}')
+P_MAX=sudo nvidia-smi -pl "$W_MAX"
+P_DEF=sudo nvidia-smi -pl "$W_DEF"
+
+$P_MAX
+$P_DEF
+
+# Set the persistence mode back to its original value if necessary
+if [ "$INITIAL_PM" == "Disabled" ]; then
+  sudo nvidia-smi -pm 0
+fi
