@@ -30,7 +30,7 @@ function trap_with_arg() {
 }
 function func_trap() {
     echo "Trapped: $1"
-    mv "$ALPHALOG" crash-"$(basename "$ALPHALOG")"
+    mv "$ALPHALOG" "$SCRPATH"/log/crash-"$(basename "$ALPHALOG")"
     rm -rf "$LOGPIPE"
 }
 trap_with_arg func_trap INT TERM QUIT
@@ -208,11 +208,10 @@ function bb_handoff() {
       --compress "$COMPRESS" \
       cudaplot \
       "$OUT" | \
-      tee -a "$ALPHALOG" && \
-      echo "Logged alpha data." >&3;
-  } 2>&1 | \
-  tee -a "$LOGPIPE" | \
-  bat -Ppl cr 3>&1
+      tee -a "$ALPHALOG" |\
+      tee -a "$LOGPIPE";
+  } && echo "Logged alpha data." |\
+  tee -a "$LOGPIPE"
 }
 
 bb_handoff &
