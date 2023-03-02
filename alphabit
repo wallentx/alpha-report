@@ -25,7 +25,7 @@ fi
 function trap_with_arg() {
     func="$1" ; shift
     for sig ; do
-        trap "$func $sig" "$sig"
+        trap '$func $sig' "$sig"
     done
 }
 function func_trap() {
@@ -46,6 +46,7 @@ source <(sudo ./print-sysinfo.sh -s)
 
 # Setup .alphacfg
 #################
+# shellcheck disable=SC2154
 # shellcheck disable=SC1090
 if [[ -f $ALPHACFG ]]; then
   source "$ALPHACFG"
