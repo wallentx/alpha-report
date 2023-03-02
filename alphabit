@@ -208,10 +208,11 @@ function bb_handoff() {
       --compress "$COMPRESS" \
       cudaplot \
       "$OUT" | \
-      tee -a "$ALPHALOG" |\
-      tee -a "$LOGPIPE";
+      tee -ai "$ALPHALOG" |\
+      tee -aip "$LOGPIPE";
   } && echo "Logged alpha data." |\
-  tee -a "$LOGPIPE"
+  tee -aip "$LOGPIPE"
+  wait
 }
 
 bb_handoff &
