@@ -1,0 +1,10 @@
+Coff='\e[0m'            # Off
+White='\e[0;37m'        # White
+Purple='\e[0;35m'       # Purple
+Cyan='\e[0;36m'         # Cyan
+Blue='\e[0;34m'         # Blue
+Green='\e[0;32m'        # Green
+Yellow='\e[0;33m'       # Yellow
+Orange='\e[38;5;202m'   # Orange
+LRed='\e[38;5;160m'     # Light Red
+Red='\e[0;31m'          # Red
