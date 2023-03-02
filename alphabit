@@ -2,68 +2,68 @@
 set -e
 
 
+# Setup functions and whatnot
+#############################
 SCRPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 mkdir -p "$SCRPATH/log"
 ALPHALOG="$SCRPATH/log/alpha-$(date +%s).log"
 ALPHACFG="$SCRPATH/.alphacfg"
-
-[[ -f $SCRPATH/extra/.bash_colors ]] && source $SCRPATH/extra/.bash_colors
-
+# Colors
+# shellcheck disable=SC1091
+if [[ -f $SCRPATH/extra/.bash_colors ]]; then 
+    source "$SCRPATH"/extra/.bash_colors
+fi
+# Pipes
 LOGPIPE=/tmp/testpipe
-
 if [[ -f $LOGPIPE ]]; then
   rm -rf "$LOGPIPE"
 fi
-
 if [[ ! -p $LOGPIPE ]]; then
     mkfifo $LOGPIPE
 fi
-
+# Traps
 function trap_with_arg() {
     func="$1" ; shift
     for sig ; do
         trap '$func $sig' '$sig'
     done
 }
-
 function func_trap() {
     echo "Trapped: $1"
-    mv "$ALPHALOG" crash-$(basename "$ALPHALOG")
+    mv "$ALPHALOG" crash-"$(basename "$ALPHALOG")"
     rm -rf "$LOGPIPE"
 }
-
 trap_with_arg func_trap INT TERM QUIT
-
 function shutdown() {
   tput cnorm
   rm -rf "$LOGPIPE"
 }
-
 trap shutdown EXIT
 
+# Source variables from print-sysinfo.sh
+########################################
 eval "$(sudo ./print-sysinfo.sh -s)"
 
+# Setup .alphacfg
+#################
+# shellcheck disable=SC1090
 if [[ -f $ALPHACFG ]]; then
   source "$ALPHACFG"
 else
   touch "$ALPHACFG"
 fi
-
 if [[ -z $EMAIL ]]; then
   read -rp "Please enter your email address: " EMAIL
   echo "EMAIL=$EMAIL" >> "$ALPHACFG"
 fi
-
 if [[ -z $KBUSER ]]; then
   read -rp "Please enter your Keybase username: " KBUSER
   echo "KBUSER=$KBUSER" >> "$ALPHACFG"
 fi
-
 if [[ -z $XCH_ADDY ]]; then
   read -rp "Please enter an XCH wallet address (for possible future rewards or incentives): " XCH_ADDY
   echo "XCH_ADDY=$XCH_ADDY" >> "$ALPHACFG"
 fi
-
 if [[ -z $BB_EXEC ]]; then
   BB_VCHECK=$(bladebit_cuda --version)
   if [[ $(command -v bladebit_cuda) && $BB_VCHECK =~ 3\.0\.0-alpha ]]; then
@@ -77,6 +77,7 @@ if [[ -z $BB_EXEC ]]; then
     fi
   fi
   read -e -i "$SUGGEST_BB" -rp "Please enter the path to your 'bladebit_cuda' executable: " BB_EXEC
+  # shellcheck disable=SC2005
   BB_EXEC="$(echo "$( eval echo "$BB_EXEC" )")"
   BB_VCHECK=$($BB_EXEC --version)
   if [[ $(command -v "$BB_EXEC") && $BB_VCHECK =~ 3\.0\.0-alpha ]]; then
@@ -87,96 +88,105 @@ if [[ -z $BB_EXEC ]]; then
   fi
 fi
 
+# Setting up opts to pass to bladebit
+#####################################
+# shellcheck disable=SC2154
 usage () {
-  echo -e ${Green}"AlphaBit"${Coff}
-  echo -e "${Green}DESCRIPTION:${Coff} This script automates the process of gathering"
-  echo "system details, creating a plot, gathering info about the plot, and submutting"
-  echo "a diagnostic report to the Chia Beta Program Google Form."
-  echo -e ${Green}"USAGE:"${Coff}
-  echo -e "alphabit ${Blue}<options> ${Yellow}path/to/plot/output"${Coff}
+  # Strings
+  description="This script automates the process of gathering system details, creating a plot, gathering info about the plot, and submitting a diagnostic report to the Chia Beta Program Google Form."
+  usage="alphabit ${Blue}<options> ${Yellow}path/to/plot/output${Coff}"
+  options="
+  ${Blue}  -a                    ${Purple}No CPU affinity${Coff}\n\
+  ${Blue}  -b                    ${Purple}Benchmark mode${Coff}\n\
+  ${Blue}  -c ${Yellow}[int]             ${Red}*${Purple}Pool contract key${Coff}\n\
+  ${Blue}  -d ${Yellow}[device]           ${Purple}GPU device index${Coff}\n\
+  ${Blue}  -f ${Yellow}[str]            ${Red}**${Purple}Farmer public key${Coff}\n\
+  ${Blue}  -h                    ${Purple}Help${Coff}\n\
+  ${Blue}  -i                    ${Purple}Specify a plot ID for debugging${Coff}\n\
+  ${Blue}  -l                    ${Purple}Enable NUMA locality${Coff}\n\
+  ${Blue}  -m                    ${Purple}specify a Memo for debugging${Coff}\n\
+  ${Blue}  -n ${Yellow}[int]              ${Purple}Number of plots to make${Coff}\n\
+  ${Blue}  -p ${Yellow}[str]             ${Red}*${Purple}Pool public key${Coff}\n\
+  ${Blue}  -r                    ${Purple}Display available/required memory (bytes)${Coff}\n\
+  ${Blue}  -s                    ${Purple}Output the memo of the next plot the be plotted${Coff}\n\
+  ${Blue}  -t                    ${Purple}Number of threads to use${Coff}\n\
+  ${Blue}  -v                    ${Purple}Verbose${Coff}\n\
+  ${Blue}  -w                    ${Purple}Warm start${Coff}\n\
+  ${Blue}  -x ${Yellow}[0-7]              ${Purple}Compression level${Coff}
+  "
+  required_option="${Red}*${Coff} indicates a required option"
+  either_option="${Red}*${Coff} indicates only one of '${Blue}-p${Coff}' or '${Blue}-c${Coff}' is required"
+
+  # Output help information
+  echo -e "${Green}AlphaBit${Coff}"
+  echo -e "${Green}DESCRIPTION:${Coff} $description"
+  echo -e "${Green}USAGE:${Coff} $usage"
   echo ""
-  echo -e ${Green}"[OPTIONS]:"${Coff}
-  echo -e ${Blue}"  -a                    ${Purple}No CPU affinity"${Coff}
-  echo -e ${Blue}"  -b                    ${Purple}Benchmark mode"${Coff}
-  echo -e ${Blue}"  -c ${Yellow}[int]             ${Red}*${Purple}Pool contract key"${Coff}
-  echo -e ${Blue}"  -d ${Yellow}[device]           ${Purple}GPU device index"${Coff}
-  echo -e ${Blue}"  -f ${Yellow}[str]            ${Red}**${Purple}Farmer public key"${Coff}
-  echo -e ${Blue}"  -h                    ${Purple}Help"${Coff}
-  echo -e ${Blue}"  -i                    ${Purple}Specify a plot ID for debugging"${Coff}
-  echo -e ${Blue}"  -l                    ${Purple}Enable NUMA locality"${Coff}
-  echo -e ${Blue}"  -m                    ${Purple}specify a Memo for debugging"${Coff}
-  echo -e ${Blue}"  -n ${Yellow}[int]              ${Purple}Number of plots to make"${Coff}
-  echo -e ${Blue}"  -p ${Yellow}[str]             ${Red}*${Purple}Pool public key"${Coff}
-  echo -e ${Blue}"  -r                    ${Purple}Display available/required memroy(bytes)"${Coff}
-  echo -e ${Blue}"  -s                    ${Purple}Output the memo of the next plot the be plotted"${Coff}
-  echo -e ${Blue}"  -t                    ${Purple}Number of threads to use"${Coff}
-  echo -e ${Blue}"  -v                    ${Purple}Verbose"${Coff}
-  echo -e ${Blue}"  -w                    ${Purple}Warm start"${Coff}
-  echo -e ${Blue}"  -x ${Yellow}[0-7]              ${Purple}Compression level"${Coff}
+  echo -e "${Green}[OPTIONS]:${Coff}"
+  echo -e "$options"
   echo ""
-  echo -e "${Red}**${Coff} indicates a required option"
-  echo -e "${Red}*${Coff} indicates only one of '${Blue}-p${Coff}' or '${Blue}-c${Coff}' is required"
+  echo -e "$required_option"
+  echo -e "$either_option"
   echo ""
 }
 
+# Parsing opts
+##############
+# shellcheck disable=SC2153
+# shellcheck disable=SC2214
 while getopts "abc:d:f:hiln:p:vwz:" opt; do
   case "$opt" in
     a)
-        BB_ARGS="$BB_ARGS --no-cpu-affinity"
-        ;;
-    b|--benchmark)
-        BB_ARGS="$BB_ARGS --benchmark"
-        ;;
+          BB_ARGS="$BB_ARGS --no-cpu-affinity";;
+    b)
+          BB_ARGS="$BB_ARGS --benchmark";;
     c)
-        KEY=${OPTARG}
-        PUBKEY=$(echo "-c $KEY")
-        ;;
+          KEY=${OPTARG}
+          PUBKEY=$(echo "-c $KEY");;
     d)
-        BB_ARGS="$BB_ARGS -d=${OPTARG}"
-        ;;
+          BB_ARGS="$BB_ARGS -d=${OPTARG}";;
     f)
-        FPK=${OPTARG}
-        ;;
+          FPK=${OPTARG};;
     h)
-        usage
-        ;;
+          usage;;
     i)
-        BB_ARGS="$BB_ARGS -i c6b84729c23dc6d60c92f22c17083f47845c1179227c5509f07a5d2804a7b835"
-        ;;
+          BB_ARGS="$BB_ARGS -i c6b84729c23dc6d60c92f22c17083f47845c1179227c5509f07a5d2804a7b835";;
     l)
-        eval "$(nvidia-smi -L | cut -d':' -f1 | tr ' ' '=')"
-        eval "$(nvidia-smi topo -M -i "$GPU" | sed 's/.*: /NUMA_ID=/g')"
-        NUMA_CMD="numactl -l -N$NUMA_ID --"
-        ;;
+          eval "$(nvidia-smi -L | cut -d':' -f1 | tr ' ' '=')"
+          eval "$(nvidia-smi topo -M -i "$GPU" | sed 's/.*: /NUMA_ID=/g')"
+          NUMA_CMD="numactl -l -N$NUMA_ID --";;
     n)
-        NUMB=${OPTARG}
-        ;;
+          NUMB=${OPTARG};;
     p)
-        KEY=${OPTARG}
-        PUBKEY=$(echo "-p $KEY")
-        ;;
+          KEY=${OPTARG}
+          PUBKEY=$(echo "-p $KEY");;
     v)
-        BB_ARGS="$BB_ARGS -v"
-        ;;
-    w|--warm-start)
-        BB_ARGS="$BB_ARGS --warm-start"
-        ;;
-    z|--compress)
-        X_LVL=${OPTARG}
-        ;;
+          BB_ARGS="$BB_ARGS -v";;
+    w)
+          BB_ARGS="$BB_ARGS --warm-start";;
+    z)
+          X_LVL=${OPTARG};;
     *)
-        usage
-        exit 1
-        ;;
+          usage
+          exit 1;;
   esac
 done
-#shift "$((OPTIND-1))"
 
+# Early catch no opts
+if [[ -z "$*" ]]; then
+  echo -e "\nPlease enter commands to pass to 'bladebit_cuda'"
+  exit 1
+fi
+
+# Defaults
 COUNT=${NUMB:-1}
 COMPRESS=${X_LVL:-0}
 OUT="${!#}"
 
-function bb() {
+# Handoff to bladebit
+#####################
+# shellcheck disable=SC2086
+function bb_handoff() {
   {
   $NUMA_CMD \
     $BB_EXEC \
@@ -194,30 +204,33 @@ function bb() {
   bat -Ppl cr 3>&1
 }
 
-if [[ -z "$*" ]]; then
-  echo -e "\nPlease enter commands to pass to 'bladebit_cuda'"
-  exit 1
-fi
+bb_handoff &
 
-bb &
-
+# Watch bladebit output for completion hint
+###########################################
 while read -r line <"$LOGPIPE"; do
     if [[ "$line" == 'Logged alpha data.' ]]; then
         break
     fi
 done
 
-VERSION=$(grep "Version" "$ALPHALOG" | cut -d":" -f2 | tr -d '[:space:]')
-COMMIT=$(grep -o -m 1 'Git Commit   : [[:xdigit:]]\{40\}' "$ALPHALOG" | awk '{print $NF}')
-SHORTHASH=$(git rev-parse --short "$COMMIT")
+# Capturing bladebit log output as variables
+# Uncomment if we need to track additional
+############################################
+# VERSION=$(grep "Version" "$ALPHALOG" | cut -d":" -f2 | tr -d '[:space:]')
+# COMMIT=$(grep -o -m 1 'Git Commit   : [[:xdigit:]]\{40\}' "$ALPHALOG" | awk '{print $NF}')
+# SHORTHASH=$(git rev-parse --short "$COMMIT")
 C_LEVEL=$(grep 'Compression Level' "$ALPHALOG" | awk '{print $NF}')
 PHASE1=$(grep -oP 'Completed Phase 1 in \K\d+(\.\d+)?(?=\sseconds)' "$ALPHALOG")
 PLOT_TIME=$(grep -oP 'Completed Plot 1 in \K[0-9]+\.[0-9]+' "$ALPHALOG")
 
+# Sanitize function
 function urlencode() {
   echo "$1" | sed 's/(R)//g; s/ /+/g'
 }
 
+# Prep pre-filled Google Forms URL
+##################################
 FORM_URL_BASE="https://docs.google.com/forms/d/e/1FAIpQLSdTzgLkFLurFZyuIaCA6kQ_TNsY5Uhi3yW9mwVZZ-89RgOJFA/viewform?usp=pp_url"
 EMAIL="&emailAddress=$(urlencode "$EMAIL")"
 KBUSER="&entry.2132304647=$(urlencode "$KBUSER")"
@@ -234,18 +247,24 @@ C_LEVEL="&entry.826308650=$(urlencode "$C_LEVEL")"
 PHASE1="&entry.62819896=$(urlencode "$PHASE1")"
 XCH_ADDY="&entry.2066990633=$(urlencode "$XCH_ADDY")"
 
+# Glue it together
 encoded_url="$FORM_URL_BASE""$EMAIL""$KBUSER""$SYSTEM_NAME""$OS""$SYSVENDOR_MODEL""$CPU""$GPU""$GPU_DRIVER""$PCIE_LINK""$DRAM""$PLOT_TIME""$C_LEVEL""$PHASE1""$XCH_ADDY"
 
-echo "Please use this URL to automatically fill the 'Bladebit GPU Alpha Testing Logs' Google Form."
+# Present
+echo "Thank you for participating in the Chia Beta Program!"
+echo "Your data has been prepared for submission to the 'Bladebit GPU Alpha Testing Logs' form:"
 echo "$encoded_url"
 echo ""
-echo "Please attach '$ALPHALOG' to the submission form for this entry."
+echo "Please attach the following file to your submission:"
+echo " - $ALPHALOG"
 echo ""
-echo "The data submitted to this form (excluding personally identifyable infornation)  will populate"
-echo "an entry on the 'Bladebit GPU Alpha Logs' spreadsheet:"
+echo "The submitted data (excluding personally identifiable information) will be added to the"
+echo "'Bladebit GPU Alpha Logs' spreadsheet:"
 echo "https://docs.google.com/spreadsheets/d/1UnIZw2dxuLdNiMtPgetY6na14Y2uur2G2ZeWOYPMvtM/edit?usp=drivesdk"
 echo ""
-echo "Thank you for your participation in the Chia Beta Program!"
+echo "Thank you again for your participation!"
 echo "🌱"
 
 rm -rf "$LOGPIPE"
+
+# This has been a wallentx feature presentation
