@@ -10,7 +10,7 @@ ALPHALOG="$SCRPATH/log/alpha-$(date +%s).log"
 ALPHACFG="$SCRPATH/.alphacfg"
 # Colors
 # shellcheck disable=SC1091
-if [[ -f $SCRPATH/extra/.bash_colors ]]; then 
+if [[ -f $SCRPATH/extra/.bash_colors ]]; then
     source "$SCRPATH"/extra/.bash_colors
 fi
 # Pipes
@@ -25,7 +25,7 @@ fi
 function trap_with_arg() {
     func="$1" ; shift
     for sig ; do
-        trap '$func $sig' '$sig'
+        trap "$func $sig" "$sig"
     done
 }
 function func_trap() {
@@ -42,7 +42,7 @@ trap shutdown EXIT
 
 # Source variables from print-sysinfo.sh
 ########################################
-eval "$(sudo ./print-sysinfo.sh -s)"
+source <(sudo ./print-sysinfo.sh -s)
 
 # Setup .alphacfg
 #################
@@ -50,25 +50,29 @@ eval "$(sudo ./print-sysinfo.sh -s)"
 if [[ -f $ALPHACFG ]]; then
   source "$ALPHACFG"
 else
+  echo -e "No ${Yellow}$ALPHACFG${Coff} file!"
+  echo "Running first time setup..."
   touch "$ALPHACFG"
 fi
 if [[ -z $EMAIL ]]; then
-  read -rp "Please enter your email address: " EMAIL
+  echo -e "${Green}(Required for Google Forms)${Coff}"
+  read -rp "📨 Please enter your Email Address: " EMAIL
   echo "EMAIL=$EMAIL" >> "$ALPHACFG"
 fi
 if [[ -z $KBUSER ]]; then
-  read -rp "Please enter your Keybase username: " KBUSER
+  read -rp "🗝️👩‍🦰 Pease enter your Keybase username: " KBUSER
   echo "KBUSER=$KBUSER" >> "$ALPHACFG"
 fi
 if [[ -z $XCH_ADDY ]]; then
-  read -rp "Please enter an XCH wallet address (for possible future rewards or incentives): " XCH_ADDY
+  echo -e "${Green}(Optional - for possible future rewards or incentives)${Coff}"
+  read -rp "💳 Please enter an XCH Wallet Address: " XCH_ADDY
   echo "XCH_ADDY=$XCH_ADDY" >> "$ALPHACFG"
 fi
 if [[ -z $BB_EXEC ]]; then
   BB_VCHECK=$(bladebit_cuda --version)
   if [[ $(command -v bladebit_cuda) && $BB_VCHECK =~ 3\.0\.0-alpha ]]; then
     SUGGEST_BB=$(which bladebit_cuda)
-    echo "'bladebit_cuda' '$BB_VCHECK' was found at '$SUGGEST_BB'"
+    echo -e "🕵️ '${Orange}bladebit_cuda${Coff}' '${Cyan}$BB_VCHECK${Coff}' was found at '${Yellow}$SUGGEST_BB${Coff}'"
   else
     if [[ -d $HOME/bin ]]; then
       SUGGEST_BB="$HOME/bin/"
@@ -76,14 +80,14 @@ if [[ -z $BB_EXEC ]]; then
       SUGGEST_BB="$HOME/"
     fi
   fi
-  read -e -i "$SUGGEST_BB" -rp "Please enter the path to your 'bladebit_cuda' executable: " BB_EXEC
+  read -e -i "$SUGGEST_BB" -rp "🗡️ Please enter the path to your 'bladebit_cuda' executable: " BB_EXEC
   # shellcheck disable=SC2005
   BB_EXEC="$(echo "$( eval echo "$BB_EXEC" )")"
   BB_VCHECK=$($BB_EXEC --version)
   if [[ $(command -v "$BB_EXEC") && $BB_VCHECK =~ 3\.0\.0-alpha ]]; then
     echo "BB_EXEC=$BB_EXEC" >> "$ALPHACFG"
   else
-    echo "The path you entered did not point to a bladebit_cuda alpha executable."
+    echo "🤷 The path you entered did not point to a bladebit_cuda alpha executable."
     exit 1
   fi
 fi
@@ -93,7 +97,11 @@ fi
 # shellcheck disable=SC2154
 usage () {
   # Strings
-  description="This script automates the process of gathering system details, creating a plot, gathering info about the plot, and submitting a diagnostic report to the Chia Beta Program Google Form."
+  description="
+  This script automates the process of gathering system details, creating a plot,
+  gathering info about the plot, and provides you with a pre-filled URL that you can use
+  for submitting a diagnostic report to the Chia Beta Program Google Form.
+  "
   usage="alphabit ${Blue}<options> ${Yellow}path/to/plot/output${Coff}"
   options="
   ${Blue}  -a                    ${Purple}No CPU affinity${Coff}\n\
@@ -148,7 +156,8 @@ while getopts "abc:d:f:hiln:p:vwz:" opt; do
     f)
           FPK=${OPTARG};;
     h)
-          usage;;
+          usage
+          exit 0;;
     i)
           BB_ARGS="$BB_ARGS -i c6b84729c23dc6d60c92f22c17083f47845c1179227c5509f07a5d2804a7b835";;
     l)
@@ -174,6 +183,7 @@ done
 
 # Early catch no opts
 if [[ -z "$*" ]]; then
+  usage
   echo -e "\nPlease enter commands to pass to 'bladebit_cuda'"
   exit 1
 fi
@@ -251,14 +261,15 @@ XCH_ADDY="&entry.2066990633=$(urlencode "$XCH_ADDY")"
 encoded_url="$FORM_URL_BASE""$EMAIL""$KBUSER""$SYSTEM_NAME""$OS""$SYSVENDOR_MODEL""$CPU""$GPU""$GPU_DRIVER""$PCIE_LINK""$DRAM""$PLOT_TIME""$C_LEVEL""$PHASE1""$XCH_ADDY"
 
 # Present
-echo "Thank you for participating in the Chia Beta Program!"
-echo "Your data has been prepared for submission to the 'Bladebit GPU Alpha Testing Logs' form:"
+echo "Thank you for participating in the Chia Beta Program! 🎉"
+echo "Your data has been prepared for submission to the 'Bladebit GPU Alpha Testing Logs' form."
+echo "Please visit this URL in a browser to complete the submission:"
 echo "$encoded_url"
 echo ""
 echo "Please attach the following file to your submission:"
 echo " - $ALPHALOG"
 echo ""
-echo "The submitted data (excluding personally identifiable information) will be added to the"
+echo "Once submitted, your data (excluding your personal/contact information) will be added to the"
 echo "'Bladebit GPU Alpha Logs' spreadsheet:"
 echo "https://docs.google.com/spreadsheets/d/1UnIZw2dxuLdNiMtPgetY6na14Y2uur2G2ZeWOYPMvtM/edit?usp=drivesdk"
 echo ""

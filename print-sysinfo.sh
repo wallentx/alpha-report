@@ -27,7 +27,9 @@ while getopts ":s" option; do
 done
 shift "$((OPTIND - 1))"
 
-source ./extra/spinner
+if [[ $SOURCED != true ]]; then
+  source ./extra/spinner
+fi
 
 function getInfo() {
   SYSNAME=$(hostname)
