@@ -40,10 +40,6 @@ function shutdown() {
 }
 trap shutdown EXIT
 
-# Source variables from print-sysinfo.sh
-########################################
-source <(sudo ./print-sysinfo.sh -s)
-
 # Setup .alphacfg
 #################
 # shellcheck disable=SC2154
@@ -175,7 +171,7 @@ while getopts "abc:d:f:hiln:p:vwz:" opt; do
     w)
           BB_ARGS="$BB_ARGS --warm-start";;
     z)
-          X_LVL=${OPTARG};;
+          Z_LVL=${OPTARG};;
     *)
           usage
           exit 1;;
@@ -191,7 +187,7 @@ fi
 
 # Defaults
 COUNT=${NUMB:-1}
-COMPRESS=${X_LVL:-0}
+COMPRESS=${Z_LVL:-0}
 OUT="${!#}"
 
 # Handoff to bladebit
@@ -225,13 +221,17 @@ while read -r line <"$LOGPIPE"; do
     fi
 done
 
+# Source variables from print-sysinfo.sh
+########################################
+source <(sudo ./print-sysinfo.sh -s)
+
 # Capturing bladebit log output as variables
 # Uncomment if we need to track additional
 ############################################
 # VERSION=$(grep "Version" "$ALPHALOG" | cut -d":" -f2 | tr -d '[:space:]')
 # COMMIT=$(grep -o -m 1 'Git Commit   : [[:xdigit:]]\{40\}' "$ALPHALOG" | awk '{print $NF}')
 # SHORTHASH=$(git rev-parse --short "$COMMIT")
-C_LEVEL=$(grep 'Compression Level' "$ALPHALOG" | awk '{print $NF}')
+# C_LEVEL=$(grep 'Compression Level' "$ALPHALOG" | awk '{print $NF}')
 PHASE1=$(grep -oP 'Completed Phase 1 in \K\d+(\.\d+)?(?=\sseconds)' "$ALPHALOG")
 PLOT_TIME=$(grep -oP 'Completed Plot 1 in \K[0-9]+\.[0-9]+' "$ALPHALOG")
 
@@ -254,25 +254,27 @@ GPU_DRIVER="&entry.2042422733=$(urlencode "$GPU_DRIVER")"
 PCIE_LINK="&entry.348068854=$(urlencode "$PCIE_LINK")"
 DRAM="&entry.1751475977=$(urlencode "$DRAM")"
 PLOT_TIME="&entry.813452909=$(urlencode "$PLOT_TIME")"
-C_LEVEL="&entry.826308650=$(urlencode "$C_LEVEL")"
+COMPRESS="&entry.826308650=C$(urlencode "$COMPRESS")"
 PHASE1="&entry.62819896=$(urlencode "$PHASE1")"
 XCH_ADDY="&entry.2066990633=$(urlencode "$XCH_ADDY")"
 
 # Glue it together
-encoded_url="$FORM_URL_BASE""$EMAIL""$KBUSER""$SYSTEM_NAME""$OS""$SYSVENDOR_MODEL""$CPU""$GPU""$GPU_DRIVER""$PCIE_LINK""$DRAM""$PLOT_TIME""$C_LEVEL""$PHASE1""$XCH_ADDY"
+encoded_url="$FORM_URL_BASE""$EMAIL""$KBUSER""$SYSTEM_NAME""$OS""$SYSVENDOR_MODEL""$CPU""$GPU""$GPU_DRIVER""$PCIE_LINK""$DRAM""$PLOT_TIME""$COMPRESS""$PHASE1""$XCH_ADDY"
 
 # Present
 echo "Thank you for participating in the Chia Beta Program! 🎉"
-echo "Your data has been prepared for submission to the 'Bladebit GPU Alpha Testing Logs' form."
-echo "Please visit this URL in a browser to complete the submission:"
+echo -e "Your data has been prepared for submission to the '${Blue}Bladebit GPU Alpha Testing Logs${Coff}' form."
+echo -e "${Orange}Please visit this URL in a browser to complete the submission${Coff}:"
+echo ""
 echo "$encoded_url"
 echo ""
-echo "Please attach the following file to your submission:"
-echo " - $ALPHALOG"
+echo -e "${Purple}Please attach the following file to your submission${Coff}:"
+echo -e " - ${Yellow}$ALPHALOG${Coff}"
 echo ""
-echo "Once submitted, your data (excluding your personal/contact information) will be added to the"
-echo "'Bladebit GPU Alpha Logs' spreadsheet:"
+echo -e "Once submitted, your data (excluding your personal/contact information) will be added to the '${Blue}Bladebit GPU Alpha Logs${Coff}' spreadsheet:"
+echo ""
 echo "https://docs.google.com/spreadsheets/d/1UnIZw2dxuLdNiMtPgetY6na14Y2uur2G2ZeWOYPMvtM/edit?usp=drivesdk"
+echo ""
 echo ""
 echo "Thank you again for your participation!"
 echo "🌱"
