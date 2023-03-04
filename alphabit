@@ -95,9 +95,7 @@ fi
 usage () {
   # Strings
   description="
-  This script automates the process of gathering system details, creating a plot,
-  gathering info about the plot, and provides you with a pre-filled URL that you can use
-  for submitting a diagnostic report to the Chia Beta Program Google Form.
+This is a wrapper for bladebit_cuda that automates capturing the required info to submit a report to the Bladebit GPU Alpha Testing Logs Form, by providing you with a pre-filled link.
   "
   usage="alphabit ${Blue}<options> ${Yellow}path/to/plot/output${Coff}"
   options="
