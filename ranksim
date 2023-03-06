@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#set -x
+COMP=$1
+grep -A14 --no-group-separator "K32 C${COMP}" ~/Documents/bladebit-sim | grep -A2 --no-group-separator 'Context count\|PB' | grep -v 'Memory\|compression\|--' | awk '{print $NF}' | awk '{ if (NR % 3 == 1) { a[NR] = $1; } else if (NR % 3 == 2) { a[NR] = $1; b[NR] = $1; } else { b[NR] = $1; }} END {max = 0; max_str = ""; for (i=1; i<=NR; i+=3) {printf("(%d,%d)\t%s\n", a[i], a[i+1], b[i+2]);};}'| sort -n -k2 | awk -v max=0 '{if($2>max){want=$1; max=$2}}END{print want"\t" max}'
