@@ -1,0 +1,35 @@
+#!/bin/bash
+set -e
+
+# Set the temp directory
+temp_dir=$(mktemp -d -t cudaComputeVersion-XXXXXX)
+
+# create a 'here document' that is code we compile and use to probe the card
+cat << EOF > "$temp_dir/cudaComputeVersion.cu"
+#include <stdio.h>
+int main()
+{
+    cudaDeviceProp prop;
+    cudaGetDeviceProperties(&prop,0);
+    int v = prop.major * 10 + prop.minor;
+    printf("Device Name:\n%s\n\n", prop.name);
+    printf("Your device architecture: \n-gencode arch=compute_%d,code=sm_%d\n",v,v);
+}
+EOF
+
+# Cleanup function to remove temp files
+cleanup() {
+  rm -rf "$temp_dir"
+}
+
+# Trap any kind of termination and cleanup
+trap cleanup EXIT
+
+# probe the card and cleanup
+$CUDA_PATH/bin/nvcc "$temp_dir/cudaComputeVersion.cu" -o "$temp_dir/cudaComputeVersion"
+"$temp_dir/cudaComputeVersion"
+
+if command -v bladebit_cuda >/dev/null && command -v cuobjdump >/dev/null; then
+    echo -ne "\\nYour bladebit_cuda was built with:"
+    cuobjdump $(which bladebit_cuda) | grep -v 'Fatbin'
+fi
