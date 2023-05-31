@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-set -e
+#set -e
 
 TMPOUT=$(mktemp /tmp/tmpXXXXXXXXXX)
 
 function shutdown() {
   tput cnorm
-  rm $TMPOUT
+  rm "$TMPOUT"
 }
-trap shutdown EXIT
+trap shutdown INT EXIT
 
 function _cursorBack() {
   echo -en "\033[$1D"
@@ -28,11 +28,11 @@ function _spinner() {
     _cursorBack 1
     sleep .1
   done
-  printf "${CL}"
+  echo -ne "$CL"
   tput cnorm
   wait $(jobs -p)
 }
 
-("$@") &
+#("$@") &
 
-_spinner $!
+#_spinner $!

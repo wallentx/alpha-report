@@ -83,7 +83,7 @@ function queryLink() {
 }
 
 function printInfo() {
-  queryLink >$TMPOUT &
+  queryLink > $TMPOUT &
   _spinner
   # Clear loading bar
   echo -ne "\r"
